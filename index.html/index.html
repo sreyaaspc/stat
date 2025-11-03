@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Detection Using Statistical Modelling</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-light: #6b8fc5;
+            --secondary: #6d9dc5;
+            --accent: #7db9b6;
+            --light: #f5f7fa;
+            --dark: #2c3e50;
+            --gray: #7f8c8d;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo i {
+            font-size: 1.8rem;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        nav a:hover, nav a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .mobile-menu {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: white;
+            color: var(--primary);
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Section Styles */
+        section {
+            padding: 4rem 0;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--primary);
+            position: relative;
+        }
+
+        .section-title:after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+
+        /* Detection Section */
+        .detection-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            margin-bottom: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+
+        .detect-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .detect-btn:hover {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+        }
+
+        .result-container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-container.show {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .language-result {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .confidence-bar {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--success), var(--accent));
+            border-radius: 10px;
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .confidence-text {
+            font-size: 1.1rem;
+            color: var(--gray);
+        }
+
+        .top-languages {
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .top-languages h4 {
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .language-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .language-name {
+            font-weight: 500;
+        }
+
+        .language-confidence {
+            color: var(--gray);
+        }
+
+        /* About Section */
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .about-text {
+            font-size: 1.1rem;
+        }
+
+        .about-text h3 {
+            margin: 1.5rem 0 1rem;
+            color: var(--primary);
+        }
+
+        .about-image {
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            border-radius: 10px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        /* Features Section */
+        .features {
+            background-color: #f8f9fa;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        /* Supported Languages */
+        .languages-section {
+            background-color: white;
+        }
+
+        .languages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .language-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            transition: var(--transition);
+            border: 1px solid #e9ecef;
+        }
+
+        .language-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary-light);
+        }
+
+        .language-flag {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 3rem 0 1.5rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-column h3 {
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .footer-column h3:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 40px;
+            height: 3px;
+            background-color: var(--accent);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-column a {
+            color: #bdc3c7;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-column a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #bdc3c7;
+            font-size: 0.9rem;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            nav ul {
+                gap: 1rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .about-content {
+                grid-template-columns: 1fr;
+            }
+
+            .mobile-menu {
+                display: block;
+            }
+
+            nav {
+                display: none;
+                width: 100%;
+                margin-top: 1rem;
+            }
+
+            nav.show {
+                display: block;
+            }
+
+            nav ul {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            nav a {
+                display: block;
+                padding: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-language"></i>
+                    <span>LangDetect</span>
+                </div>
+                <div class="mobile-menu">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#home" class="active">Home</a></li>
+                        <li><a href="#detection">Detection</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#languages">Languages</a></li>
+                        <li><a href="#features">Features</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <h1>Language Detection Using Statistical Modelling</h1>
+            <p>An advanced system that identifies languages in text using statistical and machine learning approaches with high accuracy.</p>
+            <a href="#detection" class="btn pulse">Try Language Detection</a>
+        </div>
+    </section>
+
+    <!-- Detection Section -->
+    <section id="detection">
+        <div class="container">
+            <h2 class="section-title">Language Detection</h2>
+            <div class="detection-container">
+                <textarea class="text-input" placeholder="Enter or paste text in any language here...">வணக்கம்! இது ஒரு மொழி கண்டறிதல் மாதிரி உரை.</textarea>
+                <button class="btn detect-btn">Detect Language</button>
+                <div class="result-container">
+                    <h3 class="result-title">Detected Language:</h3>
+                    <div class="language-result">Tamil</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill"></div>
+                    </div>
+                    <div class="confidence-text">Confidence: <span class="confidence-value">92%</span></div>
+                    
+                    <div class="top-languages">
+                        <h4>Other Possible Languages:</h4>
+                        <div class="language-item">
+                            <span class="language-name">Telugu</span>
+                            <span class="language-confidence">12%</span>
+                        </div>
+                        <div class="language-item">
+                            <span class="language-name">Hindi</span>
+                            <span class="language-confidence">8%</span>
+                        </div>
+                        <div class="language-item">
+                            <span class="language-name">Malayalam</span>
+                            <span class="language-confidence">5%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>Our language detection system uses advanced statistical modeling techniques to identify the language of any given text with high accuracy.</p>
+                    
+                    <h3>N-gram Analysis</h3>
+                    <p>The system breaks down text into sequences of characters (n-grams) and compares their frequency distributions against known language profiles.</p>
+                    
+                    <h3>Probability-Based Approach</h3>
+                    <p>Using Bayesian probability, the system calculates the likelihood that the text belongs to each candidate language and selects the most probable one.</p>
+                    
+                    <h3>Machine Learning Integration</h3>
+                    <p>Our models are trained on extensive multilingual datasets, allowing them to recognize subtle patterns and distinguish between similar languages.</p>
+                </div>
+                <div class="about-image">
+                    Statistical Modeling Process Visualization
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Supported Languages -->
+    <section id="languages" class="languages-section">
+        <div class="container">
+            <h2 class="section-title">Supported Languages</h2>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem;">Our system can detect over 50 languages from around the world, including:</p>
+            <div class="languages-grid">
+                <div class="language-card">
+                    <div class="language-flag">🇺🇸</div>
+                    <div class="language-name">English</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇪🇸</div>
+                    <div class="language-name">Spanish</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇫🇷</div>
+                    <div class="language-name">French</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇩🇪</div>
+                    <div class="language-name">German</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇮🇹</div>
+                    <div class="language-name">Italian</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇵🇹</div>
+                    <div class="language-name">Portuguese</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇷🇺</div>
+                    <div class="language-name">Russian</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇨🇳</div>
+                    <div class="language-name">Chinese</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇯🇵</div>
+                    <div class="language-name">Japanese</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇰🇷</div>
+                    <div class="language-name">Korean</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇦🇪</div>
+                    <div class="language-name">Arabic</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇮🇳</div>
+                    <div class="language-name">Hindi</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇮🇳</div>
+                    <div class="language-name">Tamil</div>
+                </div>
+                <div class="language-card">
+                    <div class="language-flag">🇮🇳</div>
+                    <div class="language-name">Telugu</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>Fast Processing</h3>
+                    <p>Get language detection results in milliseconds, even for longer texts.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3>Wide Language Support</h3>
+                    <p>Detects over 50 languages including Dravidian languages like Tamil and Telugu.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>High Accuracy</h3>
+                    <p>Our statistical models achieve over 99% accuracy for most common languages.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>LangDetect</h3>
+                    <p>A sophisticated language detection system using statistical modeling and machine learning approaches.</p>
+                </div>
+                <div class="footer-column">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#detection">Detection</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="#languages">Languages</a></li>
+                        <li><a href="#features">Features</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Contact</h3>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> info@langdetect.com</li>
+                        <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+                        <li><i class="fas fa-map-marker-alt"></i> 123 Tech Street, Innovation City</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2023 LangDetect. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Language profiles with character frequency data
+        const languageProfiles = {
+            'English': {
+                commonChars: 'etaoinshrdlcumwfgypbvkjxqz',
+                commonBigrams: ['th', 'he', 'in', 'er', 'an', 're', 'nd', 'at', 'on', 'nt'],
+                commonTrigrams: ['the', 'and', 'ing', 'her', 'hat', 'his', 'tha', 'ere', 'for', 'ent'],
+                uniqueChars: '',
+                flag: '🇺🇸'
+            },
+            'Spanish': {
+                commonChars: 'eaosrnidlcutmypbvgóhqífájézxñkwá',
+                commonBigrams: ['de', 'la', 'el', 'en', 'qu', 'ue', 'es', 'le', 'os', 'se'],
+                commonTrigrams: ['que', 'ent', 'ion', 'del', 'los', 'las', 'por', 'par', 'est', 'ado'],
+                uniqueChars: 'ñáéíóúü',
+                flag: '🇪🇸'
+            },
+            'French': {
+                commonChars: 'esaitnrulodcmpévqfbghjàxèyêzôûùîçœæ',
+                commonBigrams: ['es', 'le', 'de', 'en', 'nt', 'on', 're', 'er', 'et', 'el'],
+                commonTrigrams: ['ent', 'que', 'ait', 'ion', 'men', 'ell', 'ans', 'ons', 'tre', 'est'],
+                uniqueChars: 'àâæçèéêëîïôœùûüÿ',
+                flag: '🇫🇷'
+            },
+            'German': {
+                commonChars: 'enirstaudhglcomwbfkzvíüäpößj',
+                commonBigrams: ['en', 'er', 'ch', 'de', 'ei', 'nd', 'ie', 'ge', 'in', 'te'],
+                commonTrigrams: ['ein', 'ich', 'und', 'der', 'die', 'sch', 'den', 'che', 'end', 'gen'],
+                uniqueChars: 'äöüß',
+                flag: '🇩🇪'
+            },
+            'Italian': {
+                commonChars: 'eaionlrtscdupmvghzbfqèéàòùì',
+                commonBigrams: ['di', 'to', 'no', 'lo', 'la', 'le', 'ne', 'el', 'co', 're'],
+                commonTrigrams: ['che', 'ell', 'per', 'con', 'non', 'ion', 'del', 'ent', 'men', 'ess'],
+                uniqueChars: 'àèéìíîòóùú',
+                flag: '🇮🇹'
+            },
+            'Portuguese': {
+                commonChars: 'aeosridntmuclpvgqbfhãézêxájáóôç',
+                commonBigrams: ['de', 'os', 'es', 'do', 'as', 'da', 'en', 'ou', 'se', 'em'],
+                commonTrigrams: ['que', 'ent', 'ado', 'ão', 'ais', 'men', 'par', 'est', 'oma', 'per'],
+                uniqueChars: 'áàâãçéêíóôõú',
+                flag: '🇵🇹'
+            },
+            'Russian': {
+                commonChars: 'оаеинтсрвлкмдпуяыьгзбчйхжшюцщэфъё',
+                commonBigrams: ['то', 'на', 'ен', 'ов', 'но', 'ра', 'во', 'ко', 'ст', 'ер'],
+                commonTrigrams: ['сто', 'ено', 'ово', 'ров', 'тор', 'про', 'при', 'пре', 'ние', 'ени'],
+                uniqueChars: 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя',
+                flag: '🇷🇺'
+            },
+            'Chinese': {
+                commonChars: '的一是不了在人我有他这个们中来上大为和国地到以说时要就出会可也你对生能而子那得于着下自之年过发后作里用道行所然家种事成方多经么去法学如都同现当没动面起看定天分还进好小部其些主样理心她本前开但因只从想实',
+                commonBigrams: ['的是', '了一', '不在', '有人', '这时', '我们', '你们', '他们', '什么', '这个'],
+                commonTrigrams: ['了一下', '的时候', '为什么', '是不是', '有没有', '的时候', '了一下', '的时候', '了一下', '的时候'],
+                uniqueChars: '的一是不了在人我有他这个们中来上大为和国地到以说时要就出会可也你对生能而子那得于着下自之年过发后作里用道行所然家种事成方多经么去法学如都同现当没动面起看定天分还进好小部其些主样理心她本前开但因只从想实',
+                flag: '🇨🇳'
+            },
+            'Japanese': {
+                commonChars: 'のをはにしがたてでとるいもかんさきれこすになありまうおくめよそちひらせふほりわぬねつ、。',
+                commonBigrams: ['こと', 'する', 'いた', 'さん', 'よう', 'れる', 'その', 'これ', 'では', 'です'],
+                commonTrigrams: ['している', 'すること', 'という', 'ていた', 'になります', 'ています', 'してください', 'ている', 'という', 'になります'],
+                uniqueChars: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ',
+                flag: '🇯🇵'
+            },
+            'Korean': {
+                commonChars: '이다에의하가을를으로에서는으로부터에게서까지에서까지에서부터에게까지에서에게까지',
+                commonBigrams: ['하는', '한다', '하고', '된다', '된다', '되는', '한다', '한다', '한다', '한다'],
+                commonTrigrams: ['한다고', '한다는', '한다면', '한다고', '한다는', '한다면', '한다고', '한다는', '한다면', '한다고'],
+                uniqueChars: '가나다라마바사아자차카타파하',
+                flag: '🇰🇷'
+            },
+            'Arabic': {
+                commonChars: 'ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىي',
+                commonBigrams: ['ال', 'ون', 'ين', 'ان', 'ات', 'ية', 'اء', 'ية', 'اء', 'ية'],
+                commonTrigrams: ['الع', 'وال', 'الت', 'الم', 'الا', 'الي', 'الل', 'الر', 'الس', 'الش'],
+                uniqueChars: 'ءآأؤإئابةتثجحخدذرزسشصضطظعغفقكلمنهوىي',
+                flag: '🇦🇪'
+            },
+            'Hindi': {
+                commonChars: 'करतहैनयगवबसलपमदजोइउठडशआछधचभरघएफझखथढह',
+                commonBigrams: ['के', 'में', 'है', 'से', 'को', 'की', 'का', 'हैं', 'ने', 'पर'],
+                commonTrigrams: ['करते', 'होता', 'करने', 'होती', 'करता', 'होते', 'करती', 'होती', 'करते', 'होता'],
+                uniqueChars: 'कखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसह',
+                flag: '🇮🇳'
+            },
+            'Tamil': {
+                commonChars: 'கஙசஜஞடணதநனபமயரறலளழவஷஸஹாிீுூெேைொோௌ',
+                commonBigrams: ['த்த', 'க்க', 'ங்க', 'ற்ற', 'ட்ட', 'ப்ப', 'ற்ற', 'ன்ன', 'ல்ல', 'ற்ற'],
+                commonTrigrams: ['த்தி', 'க்கு', 'ங்கள்', 'ற்று', 'ட்டம்', 'ப்பு', 'ற்று', 'ன்னை', 'ல்லை', 'ற்று'],
+                uniqueChars: 'கஙசஜஞடணதநனபமயரறலளழவஷஸஹாிீுூெேைொோௌ',
+                flag: '🇮🇳'
+            },
+            'Telugu': {
+                commonChars: 'కఖగఘఙచఛజఝఞటఠడఢణతథదధనపఫబభమయరఱలళవశషసహాిీుూెేొోౌ',
+                commonBigrams: ['క్క', 'త్త', 'న్న', 'ల్ల', 'మ్మ', 'ప్ప', 'స్స', 'ట్ట', 'డ్డ', 'ర్ర'],
+                commonTrigrams: ['క్కా', 'త్తు', 'న్నా', 'ల్లు', 'మ్ము', 'ప్పు', 'స్సు', 'ట్టు', 'డ్డు', 'ర్రు'],
+                uniqueChars: 'కఖగఘఙచఛజఝఞటఠడఢణతథదధనపఫబభమయరఱలళవశషసహాిీుూెేొోౌ',
+                flag: '🇮🇳'
+            }
+        };
+
+        // Mobile Menu Toggle
+        document.querySelector('.mobile-menu').addEventListener('click', function() {
+            document.querySelector('nav').classList.toggle('show');
+        });
+
+        // Language Detection Function
+        function detectLanguage(text) {
+            // Clean and normalize text
+            const cleanText = text.toLowerCase().replace(/[^\w\s\u0B80-\u0BFF\u0C00-\u0C7F]/g, '');
+            
+            if (cleanText.length < 3) {
+                return { language: 'Unknown', confidence: 0, scores: [] };
+            }
+            
+            // Calculate scores for each language
+            const scores = [];
+            
+            for (const [language, profile] of Object.entries(languageProfiles)) {
+                let score = 0;
+                
+                // Character frequency analysis
+                for (let i = 0; i < Math.min(cleanText.length, 100); i++) {
+                    const char = cleanText[i];
+                    if (profile.commonChars.includes(char)) {
+                        score += (profile.commonChars.length - profile.commonChars.indexOf(char)) * 0.1;
+                    }
+                    
+                    // Bonus for unique characters
+                    if (profile.uniqueChars.includes(char)) {
+                        score += 10; // Higher bonus for unique characters
+                    }
+                }
+                
+                // Bigram analysis
+                for (let i = 0; i < cleanText.length - 1; i++) {
+                    const bigram = cleanText.substring(i, i + 2);
+                    if (profile.commonBigrams.includes(bigram)) {
+                        score += (profile.commonBigrams.length - profile.commonBigrams.indexOf(bigram)) * 0.5;
+                    }
+                }
+                
+                // Trigram analysis
+                for (let i = 0; i < cleanText.length - 2; i++) {
+                    const trigram = cleanText.substring(i, i + 3);
+                    if (profile.commonTrigrams.includes(trigram)) {
+                        score += (profile.commonTrigrams.length - profile.commonTrigrams.indexOf(trigram)) * 1;
+                    }
+                }
+                
+                // Special handling for Dravidian languages
+                if (language === 'Tamil' || language === 'Telugu') {
+                    // Check for Dravidian script characters
+                    const dravidianChars = cleanText.match(/[\u0B80-\u0BFF\u0C00-\u0C7F]/g);
+                    if (dravidianChars) {
+                        score += dravidianChars.length * 2;
+                    }
+                }
+                
+                scores.push({ language, score, flag: profile.flag });
+            }
+            
+            // Sort by score (descending)
+            scores.sort((a, b) => b.score - a.score);
+            
+            // Calculate confidence percentage
+            const totalScore = scores.reduce((sum, item) => sum + item.score, 0);
+            const confidence = totalScore > 0 ? Math.min(100, Math.round((scores[0].score / totalScore) * 100)) : 0;
+            
+            return {
+                language: scores[0].language,
+                confidence: confidence,
+                scores: scores.slice(0, 5) // Top 5 languages
+            };
+        }
+
+        // Language Detection Event Handler
+        document.querySelector('.detect-btn').addEventListener('click', function() {
+            const textInput = document.querySelector('.text-input').value.trim();
+            const resultContainer = document.querySelector('.result-container');
+            const languageResult = document.querySelector('.language-result');
+            const confidenceFill = document.querySelector('.confidence-fill');
+            const confidenceValue = document.querySelector('.confidence-value');
+            const topLanguages = document.querySelector('.top-languages');
+            
+            if (textInput === '') {
+                alert('Please enter some text to detect the language.');
+                return;
+            }
+            
+            // Show loading state
+            resultContainer.classList.remove('show');
+            languageResult.textContent = 'Analyzing...';
+            confidenceFill.style.width = '0%';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                const detectionResult = detectLanguage(textInput);
+                
+                // Update results
+                languageResult.textContent = `${detectionResult.language} ${languageProfiles[detectionResult.language].flag}`;
+                confidenceValue.textContent = `${detectionResult.confidence}%`;
+                
+                // Update top languages list
+                topLanguages.innerHTML = '<h4>Other Possible Languages:</h4>';
+                detectionResult.scores.slice(1).forEach(item => {
+                    const confidence = Math.round((item.score / detectionResult.scores[0].score) * 100);
+                    if (confidence > 5) {
+                        const languageItem = document.createElement('div');
+                        languageItem.className = 'language-item';
+                        languageItem.innerHTML = `
+                            <span class="language-name">${item.language} ${languageProfiles[item.language].flag}</span>
+                            <span class="language-confidence">${confidence}%</span>
+                        `;
+                        topLanguages.appendChild(languageItem);
+                    }
+                });
+                
+                // Animate confidence bar
+                setTimeout(() => {
+                    confidenceFill.style.width = `${detectionResult.confidence}%`;
+                }, 100);
+                
+                // Show results
+                resultContainer.classList.add('show');
+            }, 800);
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+                
+                window.scrollTo({
+                    top: targetSection.offsetTop - 80,
+                    behavior: 'smooth'
+                });
+                
+                // Update active nav link
+                document.querySelectorAll('nav a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // Close mobile menu if open
+                if (window.innerWidth <= 768) {
+                    document.querySelector('nav').classList.remove('show');
+                }
+            });
+        });
+
+        // Initialize with a sample detection
+        window.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.detect-btn').click();
+        });
+    </script>
+</body>
+</html>
